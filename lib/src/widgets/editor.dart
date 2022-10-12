@@ -11,6 +11,7 @@ import 'package:tuple/tuple.dart';
 
 import '../models/documents/document.dart';
 import '../models/documents/nodes/container.dart' as container_node;
+import '../models/documents/nodes/leaf.dart' as leaf;
 import '../models/documents/style.dart';
 import '../utils/platform.dart';
 import 'box.dart';
@@ -60,6 +61,16 @@ abstract class RenderAbstractEditor implements TextLayoutMetrics {
   ///
   /// Useful to enforce visibility of full caret at given position
   Rect getLocalRectForCaret(TextPosition position);
+
+  /// Returns the smallest [Rect], in the local coordinate system, that covers
+  /// the text within the [TextRange] specified.
+  ///
+  /// This method is used to calculate the approximate position of the IME bar
+  /// on iOS.
+  ///
+  /// Returns null if [TextRange.isValid] is false for the given `range`, or the
+  /// given `range` is collapsed.
+  Rect? getRectForComposingRange(TextRange range);
 
   /// Returns the local coordinates of the endpoints of the given selection.
   ///
@@ -140,41 +151,45 @@ abstract class RenderAbstractEditor implements TextLayoutMetrics {
 }
 
 class QuillEditor extends StatefulWidget {
-  const QuillEditor(
-      {required this.controller,
-      required this.focusNode,
-      required this.scrollController,
-      required this.scrollable,
-      required this.padding,
-      required this.autoFocus,
-      required this.readOnly,
-      required this.expands,
-      this.showCursor,
-      this.paintCursorAboveText,
-      this.placeholder,
-      this.enableInteractiveSelection = true,
-      this.scrollBottomInset = 0,
-      this.minHeight,
-      this.maxHeight,
-      this.maxContentWidth,
-      this.customStyles,
-      this.textCapitalization = TextCapitalization.sentences,
-      this.keyboardAppearance = Brightness.light,
-      this.scrollPhysics,
-      this.onLaunchUrl,
-      this.onTapDown,
-      this.onTapUp,
-      this.onSingleLongTapStart,
-      this.onSingleLongTapMoveUpdate,
-      this.onSingleLongTapEnd,
-      this.embedBuilder = defaultEmbedBuilder,
-      this.linkActionPickerDelegate = defaultLinkActionPickerDelegate,
-      this.customStyleBuilder,
-      this.locale,
-      this.floatingCursorDisabled = false,
-      this.textSelectionControls,
-      Key? key})
-      : super(key: key);
+  const QuillEditor({
+    required this.controller,
+    required this.focusNode,
+    required this.scrollController,
+    required this.scrollable,
+    required this.padding,
+    required this.autoFocus,
+    required this.readOnly,
+    required this.expands,
+    this.showCursor,
+    this.paintCursorAboveText,
+    this.placeholder,
+    this.enableInteractiveSelection = true,
+    this.scrollBottomInset = 0,
+    this.minHeight,
+    this.maxHeight,
+    this.maxContentWidth,
+    this.customStyles,
+    this.textCapitalization = TextCapitalization.sentences,
+    this.keyboardAppearance = Brightness.light,
+    this.scrollPhysics,
+    this.onLaunchUrl,
+    this.onTapDown,
+    this.onTapUp,
+    this.onSingleLongTapStart,
+    this.onSingleLongTapMoveUpdate,
+    this.onSingleLongTapEnd,
+    this.embedBuilder = defaultEmbedBuilder,
+    this.linkActionPickerDelegate = defaultLinkActionPickerDelegate,
+    this.customStyleBuilder,
+    this.locale,
+    this.floatingCursorDisabled = false,
+    this.pasteExtension,
+    this.mentionBuilder,
+    this.emojiBuilder,
+    this.linkParse,
+    this.selectionControls,
+    Key? key,
+  }) : super(key: key);
 
   factory QuillEditor.basic({
     required QuillController controller,
@@ -193,6 +208,20 @@ class QuillEditor extends StatefulWidget {
       keyboardAppearance: keyboardAppearance ?? Brightness.light,
     );
   }
+
+  final InlineSpan Function(leaf.Embed, TextStyle)? mentionBuilder;
+
+  /// 粘贴图片回调
+  final VoidCallback? pasteExtension;
+
+  /// 表情解析器
+  final InlineSpan? Function(String)? emojiBuilder;
+
+  /// 链接解析扩展
+  final void Function(String)? linkParse;
+
+  /// 自定义选择
+  final TextSelectionControls? selectionControls;
 
   /// Controller object which establishes a link between a rich text document
   /// and this editor.
@@ -390,7 +419,7 @@ class QuillEditorState extends State<QuillEditor>
     final theme = Theme.of(context);
     final selectionTheme = TextSelectionTheme.of(context);
 
-    TextSelectionControls textSelectionControls;
+    var textSelectionControls = widget.selectionControls;
     bool paintCursorAboveText;
     bool cursorOpacityAnimates;
     Offset? cursorOffset;
@@ -400,7 +429,7 @@ class QuillEditorState extends State<QuillEditor>
 
     if (isAppleOS(theme.platform)) {
       final cupertinoTheme = CupertinoTheme.of(context);
-      textSelectionControls = cupertinoTextSelectionControls;
+      textSelectionControls ??= cupertinoTextSelectionControls;
       paintCursorAboveText = true;
       cursorOpacityAnimates = true;
       cursorColor ??= selectionTheme.cursorColor ?? cupertinoTheme.primaryColor;
@@ -409,8 +438,15 @@ class QuillEditorState extends State<QuillEditor>
       cursorRadius ??= const Radius.circular(2);
       cursorOffset = Offset(
           iOSHorizontalOffset / MediaQuery.of(context).devicePixelRatio, 0);
+    } else if (isDesktop(theme.platform)) {
+      textSelectionControls ??= desktopTextSelectionControls;
+      paintCursorAboveText = false;
+      cursorOpacityAnimates = false;
+      cursorColor ??= selectionTheme.cursorColor ?? theme.colorScheme.primary;
+      selectionColor = selectionTheme.selectionColor ??
+          theme.colorScheme.primary.withOpacity(0.40);
     } else {
-      textSelectionControls = materialTextSelectionControls;
+      textSelectionControls ??= materialTextSelectionControls;
       paintCursorAboveText = false;
       cursorOpacityAnimates = false;
       cursorColor ??= selectionTheme.cursorColor ?? theme.colorScheme.primary;
@@ -454,7 +490,7 @@ class QuillEditorState extends State<QuillEditor>
       expands: widget.expands,
       autoFocus: widget.autoFocus,
       selectionColor: selectionColor,
-      selectionCtrls: widget.textSelectionControls ?? textSelectionControls,
+      selectionCtrls: textSelectionControls,
       keyboardAppearance: widget.keyboardAppearance,
       enableInteractiveSelection: widget.enableInteractiveSelection,
       scrollPhysics: widget.scrollPhysics,
@@ -462,6 +498,10 @@ class QuillEditorState extends State<QuillEditor>
       linkActionPickerDelegate: widget.linkActionPickerDelegate,
       customStyleBuilder: widget.customStyleBuilder,
       floatingCursorDisabled: widget.floatingCursorDisabled,
+      mentionBuilder: widget.mentionBuilder,
+      pasteExtension: widget.pasteExtension,
+      emojiBuilder: widget.emojiBuilder,
+      linkParse: widget.linkParse,
     );
 
     final editor = I18n(
@@ -595,7 +635,7 @@ class _QuillEditorSelectionGestureDetectorBuilder
       return;
     }
 
-    editor!.hideToolbar();
+    editor?.hideToolbar();
 
     try {
       if (delegate.selectionEnabled && !_isPositionSelected(details)) {

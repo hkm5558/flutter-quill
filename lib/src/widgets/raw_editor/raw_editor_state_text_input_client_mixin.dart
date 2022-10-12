@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:ui';
 
 import 'package:flutter/animation.dart';
@@ -142,6 +143,14 @@ mixin RawEditorStateTextInputClientMixin on EditorState
       // selection.
       _lastKnownRemoteTextEditingValue = value;
       return;
+    }
+
+    // pc端中文组合输入法,过程中回调可能会导致富文本数据和光标位置异常,所以将中间组合过程忽略掉,
+    // 只取最后结果
+    if (Platform.isWindows || Platform.isMacOS) {
+      if (!value.composing.isCollapsed) {
+        return;
+      }
     }
 
     final effectiveLastKnownValue = _lastKnownRemoteTextEditingValue!;
@@ -291,7 +300,7 @@ mixin RawEditorStateTextInputClientMixin on EditorState
     if (!hasConnection) {
       return;
     }
-    _textInputConnection!.connectionClosedReceived();
+    _textInputConnection?.connectionClosedReceived();
     _textInputConnection = null;
     _lastKnownRemoteTextEditingValue = null;
   }
