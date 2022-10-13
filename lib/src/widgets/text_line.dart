@@ -302,7 +302,7 @@ class _TextLineState extends State<TextLine> {
     return textStyle;
   }
 
-  TextSpan _getTextSpanFromNode(
+  InlineSpan _getTextSpanFromNode(
       DefaultStyles defaultStyles, Node node, Style lineStyle) {
     // TODO: 2022/3/2 需要业务分离TextLine与提及
     if (node is Embed && node.value is MentionEmbed) {
@@ -383,12 +383,12 @@ class _TextLineState extends State<TextLine> {
     return TextSpan(children: children);
   }
 
-  TextStyle _getInlineTextStyle(leaf.Text textNode, DefaultStyles defaultStyles,
+  TextStyle _getInlineTextStyle(Node textNode, DefaultStyles defaultStyles,
       Style nodeStyle, Style lineStyle, bool isLink) {
     var res = const TextStyle(); // This is inline text style
     /// 添加MentionEmbed H1的处理
-    if (note is Embed &&
-        note.value is MentionEmbed &&
+    if (textNode is Embed &&
+        textNode.value is MentionEmbed &&
         lineStyle.containsKey(Attribute.header.key)) {
       lineStyle.attributes.forEach((key, value) {
         if (key == Attribute.header.key) {
@@ -408,7 +408,7 @@ class _TextLineState extends State<TextLine> {
       });
     }
 
-    final color = note.style.attributes[Attribute.color.key];
+    final color = textNode.style.attributes[Attribute.color.key];
     <String, TextStyle?>{
       Attribute.bold.key: defaultStyles.bold,
       Attribute.italic.key: defaultStyles.italic,

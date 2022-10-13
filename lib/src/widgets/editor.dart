@@ -187,7 +187,7 @@ class QuillEditor extends StatefulWidget {
     this.mentionBuilder,
     this.emojiBuilder,
     this.linkParse,
-    this.selectionControls,
+    this.textSelectionControls,
     Key? key,
   }) : super(key: key);
 
@@ -220,8 +220,8 @@ class QuillEditor extends StatefulWidget {
   /// 链接解析扩展
   final void Function(String)? linkParse;
 
-  /// 自定义选择
-  final TextSelectionControls? selectionControls;
+  // /// 自定义选择
+  // final TextSelectionControls? selectionControls;
 
   /// Controller object which establishes a link between a rich text document
   /// and this editor.
@@ -419,7 +419,7 @@ class QuillEditorState extends State<QuillEditor>
     final theme = Theme.of(context);
     final selectionTheme = TextSelectionTheme.of(context);
 
-    var textSelectionControls = widget.selectionControls;
+    var textSelectionControls = widget.textSelectionControls;
     bool paintCursorAboveText;
     bool cursorOpacityAnimates;
     Offset? cursorOffset;
@@ -1365,6 +1365,18 @@ class RenderEditor extends RenderEditableContainerBox
     return childLocalRect.shift(Offset(0, boxParentData.offset.dy));
   }
 
+  @override
+  Rect? getRectForComposingRange(TextRange range) {
+    /// 增加判断会导致IME定位异常
+    // if (!range.isValid || range.isCollapsed) return null;
+
+    final endPosition =
+        TextPosition(offset: selection.end, affinity: selection.affinity);
+    final endOffset = _getOffsetForCaret(endPosition);
+
+    return (Offset.zero & Size(endOffset.dx, endOffset.dy + 2))
+        .shift(_paintOffset);
+  }
   // Start floating cursor
 
   FloatingCursorPainter get _floatingCursorPainter => FloatingCursorPainter(

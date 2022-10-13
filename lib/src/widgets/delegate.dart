@@ -72,19 +72,19 @@ class EditorTextSelectionGestureDetectorBuilder {
   final EditorTextSelectionGestureDetectorBuilderDelegate delegate;
 
   /// Returns true if lastSecondaryTapDownPosition was on selection.
-  bool get _lastSecondaryTapWasOnSelection {
-    assert(renderEditor!.lastSecondaryTapDownPosition != null);
-    // if (renderEditor!.selection == null) {
-    //   return false;
-    // }
+  // bool get _lastSecondaryTapWasOnSelection {
+  //   assert(renderEditor!.lastSecondaryTapDownPosition != null);
+  //   // if (renderEditor!.selection == null) {
+  //   //   return false;
+  //   // }
 
-    final textPosition = renderEditor!.getPositionForOffset(
-      renderEditor!.lastSecondaryTapDownPosition!,
-    );
+  //   final textPosition = renderEditor!.getPositionForOffset(
+  //     renderEditor!.lastSecondaryTapDownPosition!,
+  //   );
 
-    return renderEditor!.selection.start <= textPosition.offset &&
-        renderEditor!.selection.end >= textPosition.offset;
-  }
+  //   return renderEditor!.selection.start <= textPosition.offset &&
+  //       renderEditor!.selection.end >= textPosition.offset;
+  // }
 
   /// Whether to show the selection toolbar.
   ///
@@ -177,19 +177,19 @@ class EditorTextSelectionGestureDetectorBuilder {
   /// Handler for [TextSelectionGestureDetector.onSecondaryTap].
   ///
   /// By default, selects the word if possible and shows the toolbar.
-  @protected
-  void onSecondaryTap() {
-    if (delegate.selectionEnabled) {
-      if (!_lastSecondaryTapWasOnSelection) {
-        renderEditor!.selectWord(SelectionChangedCause.tap);
-      }
+  // @protected
+  // void onSecondaryTap() {
+  //   if (delegate.selectionEnabled) {
+  //     if (!_lastSecondaryTapWasOnSelection) {
+  //       renderEditor!.selectWord(SelectionChangedCause.tap);
+  //     }
 
-      if (shouldShowSelectionToolbar) {
-        editor!.hideToolbar();
-        editor!.showToolbar();
-      }
-    }
-  }
+  //     if (shouldShowSelectionToolbar) {
+  //       editor!.hideToolbar();
+  //       editor!.showToolbar();
+  //     }
+  //   }
+  // }
 
   /// Handler for [TextSelectionGestureDetector.onSecondaryTapDown].
   ///
@@ -198,11 +198,11 @@ class EditorTextSelectionGestureDetectorBuilder {
   ///  * [TextSelectionGestureDetector.onSecondaryTapDown], which triggers this
   ///    callback.
   ///  * [onSecondaryTap], which is typically called after this.
-  @protected
-  void onSecondaryTapDown(TapDownDetails details) {
-    renderEditor!.handleSecondaryTapDown(details);
-    shouldShowSelectionToolbar = true;
-  }
+  // @protected
+  // void onSecondaryTapDown(TapDownDetails details) {
+  //   renderEditor!.handleSecondaryTapDown(details);
+  //   shouldShowSelectionToolbar = true;
+  // }
 
   /// Handler for [EditorTextSelectionGestureDetector.onSingleTapUp].
   ///
@@ -368,8 +368,8 @@ class EditorTextSelectionGestureDetectorBuilder {
       onTapDown: onTapDown,
       onForcePressStart: delegate.forcePressEnabled ? onForcePressStart : null,
       onForcePressEnd: delegate.forcePressEnabled ? onForcePressEnd : null,
-      onSecondaryTap: onSecondaryTap,
-      onSecondaryTapDown: onSecondaryTapDown,
+      // onSecondaryTap: onSecondaryTap,
+      // onSecondaryTapDown: onSecondaryTapDown,
       onSingleTapUp: onSingleTapUp,
       onSingleTapCancel: onSingleTapCancel,
       onSingleLongTapStart: onSingleLongTapStart,
